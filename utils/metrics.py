@@ -1,5 +1,17 @@
 import numpy as np
+import torch.nn as nn
 
+class Weighted_MSE_MAE(nn.Module):
+    def __init__(self, alpha_weight=0.5):
+        super(Weighted_MSE_MAE, self).__init__()
+        self.alpha_weight = alpha_weight
+        self.loss_mse = nn.MSELoss()
+        self.loss_mae = nn.L1Loss()
+
+    def forward(self, pred, true):
+        loss_mse = self.loss_mse(pred, true)    
+        loss_mae = self.loss_mae(pred, true)
+        return loss_mse * self.alpha_weight + loss_mae * (1 - self.alpha_weight)
 
 def RSE(pred, true):
     return np.sqrt(np.sum((true - pred) ** 2)) / np.sqrt(np.sum((true - true.mean()) ** 2))

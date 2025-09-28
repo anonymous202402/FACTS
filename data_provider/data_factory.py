@@ -1,6 +1,7 @@
 from data_provider.data_loader import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom, Dataset_M4, PSMSegLoader, \
     MSLSegLoader, SMAPSegLoader, SMDSegLoader, SWATSegLoader, UEAloader
-from data_provider.data_loader_folsom import SlidingWindowLogicalDailySolarDataset, FastDataset
+from data_provider.data_loader_folsom import SlidingWindowLogicalDailySolarDataset
+from data_provider.data_loader_water import SlidingWindowWaterDataset
 from data_provider.uea import collate_fn
 from torch.utils.data import DataLoader
 
@@ -17,8 +18,8 @@ data_dict = {
     'SMD': SMDSegLoader,
     'SWAT': SWATSegLoader,
     'UEA': UEAloader,
-    # 'Folsom': FastDataset,
     'Folsom': SlidingWindowLogicalDailySolarDataset,
+    'Water': SlidingWindowWaterDataset,
 }
 
 
@@ -82,8 +83,6 @@ def data_provider(args, flag):
                 shuffle_flag = True
                 drop_last = True
 
-            # 计算 label_len_hours 以匹配模型期望
-            # 对于5分钟频率数据，每小时12个点
             points_per_hour = 12
             label_len_hours = args.label_len // points_per_hour
             
@@ -112,6 +111,21 @@ def data_provider(args, flag):
                 drop_last=drop_last
             )
             return data_set, data_loader
+        elif args.data == 'Water':
+            data_set = Data(
+                root_path=args.root_path,
+                data_path=args.data_path,
+                flag=flag,
+                seq_len=args.seq_len,
+                pred_len=args.pred_len,
+                label_len=0,
+                stride=args.stride,        
+                features=args.features,      
+                target="target",
+                scale=True,
+                timeenc=0
+                    )
+            return data_set, data_loader
         else:
             data_set = Data(
                 args = args,
@@ -133,18 +147,3 @@ def data_provider(args, flag):
                 num_workers=args.num_workers,
                 drop_last=drop_last)
             return data_set, data_loader
-
-def data_provider_fast(args, flag):
-    Data = data_dict[args.data]
-    processed_root_path = '/opt/data/private/code/ICML25-TimeVLM-main/folsom'
-    data_set = Data(processed_root_path, flag=flag)
-    shuffle_flag = False
-    drop_last = True
-    data_loader = DataLoader(
-        dataset=data_set,
-        batch_size=args.batch_size,
-        shuffle=shuffle_flag,
-        num_workers=args.num_workers,
-        drop_last=drop_last
-    )
-    return data_set, data_loader
